@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FakeNewsDetector Pro</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background-color: #f5f5f5;
+        }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        textarea { 
+            width: 100%; 
+            height: 150px; 
+            margin: 10px 0; 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px;
+        }
+        input[type="text"] { 
+            width: 100%; 
+            padding: 10px; 
+            margin: 10px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 5px;
+        }
+        button { 
+            background: #007bff; 
+            color: white; 
+            padding: 12px 30px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .result { 
+            margin-top: 20px; 
+            padding: 20px; 
+            border-radius: 5px;
+        }
+        .trustworthy { background: #d4edda; border: 1px solid #c3e6cb; }
+        .suspicious { background: #fff3cd; border: 1px solid #ffeaa7; }
+        .fake { background: #f8d7da; border: 1px solid #f5c6cb; }
+        .stats { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 10px; 
+            margin: 10px 0;
+        }
+        .stat-item { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-radius: 5px; 
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 FakeNewsDetector Pro</h1>
+        <p>Проверьте новость на достоверность с помощью AI и системы репутации источников</p>
+        
+        <div>
+            <label for="newsText">Текст новости:</label>
+            <textarea id="newsText" placeholder="Введите текст новости для анализа..."></textarea>
+            
+            <label for="newsUrl">URL источника (опционально):</label>
+            <input type="text" id="newsUrl" placeholder="https://example.com/news...">
+            
+            <button onclick="analyzeNews()">🔍 Анализировать новость</button>
+            <button onclick="clearForm()">🗑️ Очистить</button>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function analyzeNews() {
+            const text = document.getElementById('newsText').value;
+            const url = document.getElementById('newsUrl').value;
+            
+            if (!text) {
+                alert('Введите текст новости');
+                return;
+            }
+            
+            const response = await fetch('/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, url })
+            });
+            
+            const result = await response.json();
+            displayResult(result);
+        }
+        
+        function displayResult(data) {
+            const resultDiv = document.getElementById('result');
+            let html = '';
+            
+            if (data.error) {
+                html = `<div class="result fake">Ошибка: ${data.error}</div>`;
+            } else {
+                // Определяем класс для результата
+                let resultClass = '';
+                if (data.final_verdict.includes('trustworthy')) resultClass = 'trustworthy';
+                else if (data.final_verdict.includes('suspicious')) resultClass = 'suspicious';
+                else resultClass = 'fake';
+                
+                html = `
+                    <div class="result ${resultClass}">
+                        <h3>📊 Результат анализа</h3>
+                        <p><strong>Финальный вердикт:</strong> ${data.final_verdict}</p>
+                        <p><strong>Рекомендация:</strong> ${data.recommendation}</p>
+                        
+                        <h4>🤖 Анализ AI:</h4>
+                        <div class="stats">
+                            <div class="stat-item">Вердикт: ${data.ai_analysis.prediction}</div>
+                            <div class="stat-item">Уверенность: ${(data.ai_analysis.confidence * 100).toFixed(1)}%</div>
+                            <div class="stat-item">Вероятность реальности: ${(data.ai_analysis.real_prob * 100).toFixed(1)}%</div>
+                            <div class="stat-item">Вероятность фейка: ${(data.ai_analysis.fake_prob * 100).toFixed(1)}%</div>
+                        </div>
+                        
+                        <h4>📈 Анализ источника:</h4>
+                        <p>Балл доверия: ${data.source_analysis.trust_score}/100</p>
+                        ${data.source_analysis.source_info ? 
+                            `<p>Проверок: ${data.source_analysis.source_info.total_checks} | 
+                             Флагов фейков: ${data.source_analysis.source_info.fake_flags}</p>` : 
+                            '<p>Информация об источнике отсутствует</p>'}
+                        
+                        ${data.source_analysis.url_provided ? 
+                            `<button onclick="reportFake('${document.getElementById('newsUrl').value}')">🚨 Сообщить о фейке</button>
+                             <button onclick="reportReal('${document.getElementById('newsUrl').value}')">✅ Подтвердить достоверность</button>` : 
+                            ''}
+                    </div>
+                `;
+            }
+            
+            resultDiv.innerHTML = html;
+        }
+        
+        async function reportFake(url) {
+            await updateReputation(url, true);
+        }
+        
+        async function reportReal(url) {
+            await updateReputation(url, false);
+        }
+        
+        async function updateReputation(url, isFake) {
+            const response = await fetch('/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    url: url, 
+                    is_fake: isFake,
+                    fact_checker: 'user' 
+                })
+            });
+            
+            const result = await response.json();
+            alert(`Репутация обновлена! Новый балл: ${result.new_trust_score}`);
+        }
+        
+        function clearForm() {
+            document.getElementById('newsText').value = '';
+            document.getElementById('newsUrl').value = '';
+            document.getElementById('result').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
