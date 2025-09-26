@@ -3,149 +3,215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FakeNewsDetector Pro</title>
+    <title>Fake News Detector Pro</title>
     <style>
         body { 
             font-family: Arial, sans-serif; 
-            max-width: 800px; 
+            max-width: 900px; 
             margin: 0 auto; 
-            padding: 20px; 
-            background-color: #f5f5f5;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
         }
         .container { 
             background: white; 
             padding: 30px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-top: 20px;
+        }
+        h1 { 
+            color: white; 
+            text-align: center; 
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .header { 
+            background: rgba(255,255,255,0.1); 
+            padding: 20px; 
             border-radius: 10px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
         }
-        textarea { 
+        textarea, input { 
             width: 100%; 
-            height: 150px; 
-            margin: 10px 0; 
-            padding: 10px; 
-            border: 1px solid #ddd; 
-            border-radius: 5px;
+            padding: 12px; 
+            margin: 8px 0; 
+            border: 2px solid #ddd; 
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
         }
-        input[type="text"] { 
-            width: 100%; 
-            padding: 10px; 
-            margin: 10px 0; 
-            border: 1px solid #ddd; 
-            border-radius: 5px;
+        textarea:focus, input:focus { 
+            border-color: #667eea; 
+            outline: none;
         }
         button { 
-            background: #007bff; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
             color: white; 
-            padding: 12px 30px; 
+            padding: 12px 25px; 
             border: none; 
-            border-radius: 5px; 
+            border-radius: 8px; 
             cursor: pointer; 
             margin: 5px;
+            font-size: 16px;
+            transition: transform 0.2s;
         }
-        button:hover { background: #0056b3; }
+        button:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
         .result { 
-            margin-top: 20px; 
+            margin-top: 25px; 
             padding: 20px; 
-            border-radius: 5px;
+            border-radius: 10px;
+            border-left: 5px solid;
         }
-        .trustworthy { background: #d4edda; border: 1px solid #c3e6cb; }
-        .suspicious { background: #fff3cd; border: 1px solid #ffeaa7; }
-        .fake { background: #f8d7da; border: 1px solid #f5c6cb; }
-        .stats { 
+        .high-confidence { 
+            background: #d4edda; 
+            border-color: #28a745;
+        }
+        .medium-confidence { 
+            background: #fff3cd; 
+            border-color: #ffc107;
+        }
+        .low-confidence { 
+            background: #f8d7da; 
+            border-color: #dc3545;
+        }
+        .stats-grid { 
             display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 10px; 
-            margin: 10px 0;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 15px; 
+            margin: 15px 0;
         }
-        .stat-item { 
-            background: #f8f9fa; 
-            padding: 10px; 
-            border-radius: 5px; 
+        .stat-card { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 8px; 
             text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .admin-panel { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
         }
     </style>
 </head>
 <body>
+    <div class="header">
+        <h1>🔍 Fake News Detector Pro</h1>
+        <p style="color: white; text-align: center;">Проверьте достоверность новостей с помощью AI и системы репутации источников</p>
+    </div>
+
     <div class="container">
-        <h1>🔍 FakeNewsDetector Pro</h1>
-        <p>Проверьте новость на достоверность с помощью AI и системы репутации источников</p>
-        
         <div>
-            <label for="newsText">Текст новости:</label>
-            <textarea id="newsText" placeholder="Введите текст новости для анализа..."></textarea>
+            <label><b>Текст новости:</b></label>
+            <textarea id="newsText" rows="6" placeholder="Введите текст новости для анализа..."></textarea>
             
-            <label for="newsUrl">URL источника (опционально):</label>
+            <label><b>URL источника (опционально):</b></label>
             <input type="text" id="newsUrl" placeholder="https://example.com/news...">
             
             <button onclick="analyzeNews()">🔍 Анализировать новость</button>
             <button onclick="clearForm()">🗑️ Очистить</button>
+            <button onclick="showExample()">📋 Пример</button>
         </div>
-        
+
         <div id="result"></div>
+
+        <div class="admin-panel">
+            <h3>⚙️ Панель администратора</h3>
+            <button onclick="updateDataset()">🔄 Обновить датасет</button>
+            <button onclick="checkStatus()">📊 Статус системы</button>
+            <div id="adminResult" style="margin-top: 10px;"></div>
+        </div>
     </div>
 
     <script>
         async function analyzeNews() {
-            const text = document.getElementById('newsText').value;
-            const url = document.getElementById('newsUrl').value;
+            const text = document.getElementById('newsText').value.trim();
+            const url = document.getElementById('newsUrl').value.trim();
             
             if (!text) {
                 alert('Введите текст новости');
                 return;
             }
             
-            const response = await fetch('/analyze', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text, url })
-            });
+            showLoading();
             
-            const result = await response.json();
-            displayResult(result);
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, url })
+                });
+                
+                const result = await response.json();
+                displayResult(result);
+            } catch (error) {
+                showError('Ошибка при анализе: ' + error.message);
+            }
         }
         
         function displayResult(data) {
             const resultDiv = document.getElementById('result');
-            let html = '';
             
             if (data.error) {
-                html = `<div class="result fake">Ошибка: ${data.error}</div>`;
-            } else {
-                // Определяем класс для результата
-                let resultClass = '';
-                if (data.final_verdict.includes('trustworthy')) resultClass = 'trustworthy';
-                else if (data.final_verdict.includes('suspicious')) resultClass = 'suspicious';
-                else resultClass = 'fake';
-                
-                html = `
-                    <div class="result ${resultClass}">
-                        <h3>📊 Результат анализа</h3>
-                        <p><strong>Финальный вердикт:</strong> ${data.final_verdict}</p>
-                        <p><strong>Рекомендация:</strong> ${data.recommendation}</p>
-                        
-                        <h4>🤖 Анализ AI:</h4>
-                        <div class="stats">
-                            <div class="stat-item">Вердикт: ${data.ai_analysis.prediction}</div>
-                            <div class="stat-item">Уверенность: ${(data.ai_analysis.confidence * 100).toFixed(1)}%</div>
-                            <div class="stat-item">Вероятность реальности: ${(data.ai_analysis.real_prob * 100).toFixed(1)}%</div>
-                            <div class="stat-item">Вероятность фейка: ${(data.ai_analysis.fake_prob * 100).toFixed(1)}%</div>
+                resultDiv.innerHTML = `<div class="result low-confidence">❌ ${data.error}</div>`;
+                return;
+            }
+            
+            const verdict = data.final_verdict;
+            const confidenceClass = verdict.confidence + '-confidence';
+            
+            let html = `
+                <div class="result ${confidenceClass}">
+                    <h2>${verdict.verdict}</h2>
+                    <p><b>Объяснение:</b> ${verdict.explanation}</p>
+                    <p><b>Общая уверенность:</b> ${(verdict.score * 100).toFixed(1)}%</p>
+                    
+                    <h3>🤖 Анализ AI</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <b>Вердикт</b><br>
+                            ${data.ai_analysis.prediction === 'fake' ? '❌ ФЕЙК' : '✅ РЕАЛЬНАЯ'}
                         </div>
-                        
-                        <h4>📈 Анализ источника:</h4>
-                        <p>Балл доверия: ${data.source_analysis.trust_score}/100</p>
-                        ${data.source_analysis.source_info ? 
-                            `<p>Проверок: ${data.source_analysis.source_info.total_checks} | 
-                             Флагов фейков: ${data.source_analysis.source_info.fake_flags}</p>` : 
-                            '<p>Информация об источнике отсутствует</p>'}
-                        
-                        ${data.source_analysis.url_provided ? 
-                            `<button onclick="reportFake('${document.getElementById('newsUrl').value}')">🚨 Сообщить о фейке</button>
-                             <button onclick="reportReal('${document.getElementById('newsUrl').value}')">✅ Подтвердить достоверность</button>` : 
-                            ''}
+                        <div class="stat-card">
+                            <b>Уверенность</b><br>
+                            ${(data.ai_analysis.confidence * 100).toFixed(1)}%
+                        </div>
+                        <div class="stat-card">
+                            <b>Вероятность реальности</b><br>
+                            ${(data.ai_analysis.real_prob * 100).toFixed(1)}%
+                        </div>
+                        <div class="stat-card">
+                            <b>Вероятность фейка</b><br>
+                            ${(data.ai_analysis.fake_prob * 100).toFixed(1)}%
+                        </div>
                     </div>
+                    
+                    <h4>🔍 Анализ стиля:</h4>
+                    <ul>
+                        ${data.ai_analysis.style_analysis.map(item => `<li>${item}</li>`).join('')}
+                    </ul>
+            `;
+            
+            if (data.source_analysis.url_provided) {
+                html += `
+                    <h3>🌐 Анализ источника</h3>
+                    <p><b>Домен:</b> ${data.source_analysis.source_info?.domain || 'неизвестен'}</p>
+                    <p><b>Балл доверия:</b> ${data.source_analysis.trust_score}/100</p>
+                    <p><b>Проверок:</b> ${data.source_analysis.source_info?.total_checks || 0}</p>
+                    <p><b>Флагов фейков:</b> ${data.source_analysis.source_info?.fake_flags || 0}</p>
+                    
+                    <button onclick="reportFake('${document.getElementById('newsUrl').value}')">🚨 Сообщить о фейке</button>
+                    <button onclick="reportReal('${document.getElementById('newsUrl').value}')">✅ Подтвердить достоверность</button>
                 `;
             }
             
+            html += `</div>`;
             resultDiv.innerHTML = html;
         }
         
@@ -158,24 +224,88 @@
         }
         
         async function updateReputation(url, isFake) {
-            const response = await fetch('/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    url: url, 
-                    is_fake: isFake,
-                    fact_checker: 'user' 
-                })
-            });
+            try {
+                const response = await fetch('/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url, is_fake: isFake })
+                });
+                
+                const result = await response.json();
+                alert(`Репутация обновлена! Новый балл: ${result.new_trust_score}`);
+                // Переанализировать для обновления данных
+                analyzeNews();
+            } catch (error) {
+                alert('Ошибка при обновлении репутации');
+            }
+        }
+        
+        async function updateDataset() {
+            const adminResult = document.getElementById('adminResult');
+            adminResult.innerHTML = '🔄 Обновление датасета...';
             
-            const result = await response.json();
-            alert(`Репутация обновлена! Новый балл: ${result.new_trust_score}`);
+            try {
+                const response = await fetch('/admin/update-dataset', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    adminResult.innerHTML = `✅ ${result.message}`;
+                } else {
+                    adminResult.innerHTML = `❌ Ошибка: ${result.error}`;
+                }
+            } catch (error) {
+                adminResult.innerHTML = `❌ Ошибка сети: ${error.message}`;
+            }
+        }
+        
+        async function checkStatus() {
+            const adminResult = document.getElementById('adminResult');
+            adminResult.innerHTML = '📊 Проверка статуса...';
+            
+            try {
+                const response = await fetch('/admin/status');
+                const status = await response.json();
+                
+                adminResult.innerHTML = `
+                    <b>Статус системы:</b><br>
+                    • Датасет: ${status.dataset_ready ? '✅ готов' : '❌ отсутствует'}<br>
+                    • Модель: ${status.model_ready ? '✅ обучена' : '❌ требуется обучение'}<br>
+                    • Статус: ${status.system_status}
+                `;
+            } catch (error) {
+                adminResult.innerHTML = `❌ Ошибка: ${error.message}`;
+            }
+        }
+        
+        function showLoading() {
+            document.getElementById('result').innerHTML = `
+                <div class="result medium-confidence">
+                    <p>🔄 Анализируем новость... Это займет несколько секунд.</p>
+                </div>
+            `;
+        }
+        
+        function showError(message) {
+            document.getElementById('result').innerHTML = `
+                <div class="result low-confidence">
+                    <p>❌ ${message}</p>
+                </div>
+            `;
         }
         
         function clearForm() {
             document.getElementById('newsText').value = '';
             document.getElementById('newsUrl').value = '';
             document.getElementById('result').innerHTML = '';
+            document.getElementById('adminResult').innerHTML = '';
+        }
+        
+        function showExample() {
+            document.getElementById('newsText').value = 
+                'ШОК! Ученые обнаружили, что вакцины вызывают неизлечимые болезни! Врачи десятилетиями скрывали эту правду от общественности!';
+            document.getElementById('newsUrl').value = 'https://example-fake-news.ru';
         }
     </script>
 </body>
