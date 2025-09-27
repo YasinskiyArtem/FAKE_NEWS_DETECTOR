@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify
-from data_collector import DataCollector
+from data_collector import ImprovedDataCollector as DataCollector
 from news_analyzer import NewsAnalyzer
 from reputation_system import ReputationSystem
 import os
@@ -160,8 +160,8 @@ if __name__ == '__main__':
     
     if not data_collector.dataset_exists():
         print("📊 Создание начального датасета...")
-        data_collector.create_dataset(100)
-    
+        data_collector.create_balanced_dataset(100)
+
     print("🤖 Обучение модели...")
     news_analyzer.train_model()
     

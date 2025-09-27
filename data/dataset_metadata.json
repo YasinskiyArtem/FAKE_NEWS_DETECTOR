@@ -1,0 +1,12 @@
+{
+  "created_date": "2025-09-26T15:41:18.054527",
+  "total_samples": 100,
+  "real_samples": 50,
+  "fake_samples": 50,
+  "sources": [
+    "ria",
+    "tass",
+    "generated_plausible",
+    "known_fake"
+  ]
+}

@@ -23,14 +23,22 @@ class NewsAnalyzer:
         }
     
     def load_dataset(self):
-        """Загрузка датасета"""
         try:
-            df = pd.read_csv('data/russian_news_dataset.csv')
+            # Пробуем загрузить улучшенный датасет
+            df = pd.read_csv('data/russian_news_dataset_improved.csv')
+            print("✅ Улучшенный датасет загружен")
             return df
-        except:
-            from data_collector import DataCollector
-            collector = DataCollector()
-            return collector.create_dataset()
+        except FileNotFoundError:
+            try:
+                # Пробуем загрузить старый датасет
+                df = pd.read_csv('data/russian_news_dataset.csv')
+                print("✅ Старый датасет загружен")
+                return df
+            except FileNotFoundError:
+                print("📊 Датасет не найден, создаем новый...")
+                from data_collector import ImprovedDataCollector as DataCollector
+                collector = DataCollector()
+                return collector.create_dataset(10000)
     
     def extract_features(self, text):
         """Извлечение признаков из текста"""
@@ -164,3 +172,21 @@ class NewsAnalyzer:
             analysis.append("✅ Текст выглядит нейтральным")
         
         return analysis
+
+# Прямой запуск
+print("🚀 Запуск Fake News Detector Pro...")
+
+# Создаем экземпляр анализатора
+news_analyzer = NewsAnalyzer()
+
+# Обучаем модель
+news_analyzer.train_model()
+
+print("✅ Система готова к работе!")
+
+# Пример использования
+test_text = "Ученые в шоке! Стало известно о новом заговоре мирового правительства!"
+result = news_analyzer.analyze_news(test_text)
+print(f"\n📊 Результат анализа: {result['prediction']}")
+print(f"🔍 Уверенность: {result['confidence']:.2f}")
+print("📈 Особенности:", result['style_analysis'])
