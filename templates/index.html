@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake News Detector Pro</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 900px; 
+            margin: 0 auto; 
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-top: 20px;
+        }
+        h1 { 
+            color: white; 
+            text-align: center; 
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin: 0;
+        }
+        .header { 
+            background: rgba(255,255,255,0.1); 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: bold;
+        }
+        textarea, input { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 8px 0; 
+            border: 2px solid #ddd; 
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            font-family: Arial, sans-serif;
+        }
+        textarea:focus, input:focus { 
+            border-color: #667eea; 
+            outline: none;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        button { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 12px 25px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 16px;
+            transition: transform 0.2s;
+            flex: 1;
+            min-width: 120px;
+        }
+        button:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .result { 
+            margin-top: 25px; 
+            padding: 20px; 
+            border-radius: 10px;
+            border-left: 5px solid;
+            display: none;
+        }
+        .result.show {
+            display: block;
+        }
+        .reliable { 
+            background: #d4edda; 
+            border-color: #28a745;
+        }
+        .unreliable { 
+            background: #f8d7da; 
+            border-color: #dc3545;
+        }
+        .warning { 
+            background: #fff3cd; 
+            border-color: #ffc107;
+        }
+        .error { 
+            background: #f8d7da; 
+            border-color: #dc3545;
+        }
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 15px; 
+            margin: 15px 0;
+        }
+        .stat-card { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 8px; 
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border: 1px solid #eee;
+        }
+        .admin-panel { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        .loading { 
+            text-align: center; 
+            padding: 20px;
+        }
+        #newsText {
+            resize: vertical;
+            min-height: 120px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 Fake News Detector Pro</h1>
+        <p style="color: white; text-align: center; margin: 10px 0 0 0;">Проверьте достоверность новостей с помощью AI</p>
+    </div>
+
+    <div class="container">
+        <form id="newsForm" onsubmit="return false;">
+            <div class="input-group">
+                <label for="newsText"><b>Текст новости:</b></label>
+                <textarea id="newsText" name="news_text" rows="6" placeholder="Введите текст новости для анализа...">{{ news_text if news_text else '' }}</textarea>
+            </div>
+            
+            <div class="input-group">
+                <label for="newsUrl"><b>URL источника (опционально):</b></label>
+                <input type="text" id="newsUrl" name="news_url" placeholder="https://example.com/news...">
+            </div>
+            
+            <div class="button-group">
+                <button type="button" onclick="analyzeNews()">🔍 Анализировать новость</button>
+                <button type="button" onclick="clearForm()">🗑️ Очистить</button>
+                <button type="button" onclick="showExample()">📋 Пример</button>
+            </div>
+        </form>
+
+        <div id="result" class="result {% if prediction_text %}show{% endif %} {{ prediction_class if prediction_class else '' }}">
+            {% if prediction_text %}
+                <h2>{{ prediction_text }}</h2>
+                {% if confidence_text %}
+                <p><b>{{ confidence_text }}</b></p>
+                {% endif %}
+            {% endif %}
+        </div>
+
+        <div class="admin-panel">
+            <h3>⚙️ Панель администратора</h3>
+            <button type="button" onclick="checkStatus()">📊 Статус системы</button>
+            <div id="adminResult" style="margin-top: 10px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Основная функция анализа новости через AJAX
+        async function analyzeNews() {
+            const text = document.getElementById('newsText').value.trim();
+            const url = document.getElementById('newsUrl').value.trim();
+            
+            if (!text) {
+                alert('Пожалуйста, введите текст новости');
+                return;
+            }
+            
+            showLoading();
+            
+            try {
+                // Используем FormData для отправки данных формы
+                const formData = new FormData();
+                formData.append('news_text', text);
+                if (url) {
+                    formData.append('news_url', url);
+                }
+                
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                // Получаем HTML ответ
+                const resultHtml = await response.text();
+                
+                // Создаем временный элемент для извлечения результата
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = resultHtml;
+                
+                // Находим элемент с результатом
+                const newResult = tempDiv.querySelector('#result');
+                const currentResult = document.getElementById('result');
+                
+                if (newResult) {
+                    currentResult.innerHTML = newResult.innerHTML;
+                    currentResult.className = newResult.className + ' show';
+                }
+                
+            } catch (error) {
+                console.error('Ошибка:', error);
+                showError('Ошибка при анализе: ' + error.message);
+            }
+        }
+
+        // Альтернативная функция через JSON API
+        async function analyzeNewsAPI() {
+            const text = document.getElementById('newsText').value.trim();
+            const url = document.getElementById('newsUrl').value.trim();
+            
+            if (!text) {
+                alert('Пожалуйста, введите текст новости');
+                return;
+            }
+            
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        url: url || ''
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    displayAPIResult(data);
+                } else {
+                    throw new Error(data.error || 'Неизвестная ошибка');
+                }
+                
+            } catch (error) {
+                console.error('Ошибка:', error);
+                showError('Ошибка при анализе: ' + error.message);
+            }
+        }
+
+        // Функция для отображения результата из API
+        function displayAPIResult(data) {
+            const resultDiv = document.getElementById('result');
+            const confidencePercent = (data.confidence * 100).toFixed(1);
+            const predictionClass = data.result === 'RELIABLE' ? 'reliable' : 'unreliable';
+            const predictionText = data.result === 'RELIABLE' ? '✅ ДОСТОВЕРНАЯ НОВОСТЬ' : '❌ НЕДОСТОВЕРНАЯ НОВОСТЬ';
+            
+            const html = `
+                <h2>${predictionText}</h2>
+                <p><b>Уверенность модели:</b> ${confidencePercent}%</p>
+                <p><b>Вероятность:</b> ${(data.probability * 100).toFixed(1)}%</p>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <b>Статус</b><br>
+                        ${data.result === 'RELIABLE' ? '✅ Надежный' : '❌ Подозрительный'}
+                    </div>
+                    <div class="stat-card">
+                        <b>Уверенность</b><br>
+                        ${confidencePercent}%
+                    </div>
+                    <div class="stat-card">
+                        <b>Вероятность реальности</b><br>
+                        ${data.result === 'RELIABLE' ? confidencePercent : (100 - confidencePercent).toFixed(1)}%
+                    </div>
+                    <div class="stat-card">
+                        <b>Вероятность фейка</b><br>
+                        ${data.result === 'RELIABLE' ? (100 - confidencePercent).toFixed(1) : confidencePercent}%
+                    </div>
+                </div>
+                <p><small>Анализ выполнен с помощью гибридной модели CNN-LSTM</small></p>
+            `;
+            
+            resultDiv.innerHTML = html;
+            resultDiv.className = `result ${predictionClass} show`;
+        }
+
+        // Функция проверки статуса системы
+        async function checkStatus() {
+            const adminResult = document.getElementById('adminResult');
+            adminResult.innerHTML = '<div class="loading">📊 Проверка статуса...</div>';
+            
+            try {
+                const response = await fetch('/health');
+                const status = await response.json();
+                
+                let statusHtml = `
+                    <b>Статус системы:</b><br>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <b>Модель</b><br>
+                            ${status.model_loaded ? '✅ Загружена' : '❌ Отсутствует'}
+                        </div>
+                        <div class="stat-card">
+                            <b>Токенайзер</b><br>
+                            ${status.tokenizer_loaded ? '✅ Загружен' : '❌ Отсутствует'}
+                        </div>
+                        <div class="stat-card">
+                            <b>Общий статус</b><br>
+                            ${status.status === 'healthy' ? '✅ Работает' : '⚠️ Ограничен'}
+                        </div>
+                    </div>
+                `;
+                
+                adminResult.innerHTML = statusHtml;
+                
+            } catch (error) {
+                adminResult.innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+
+        // Вспомогательные функции
+        function showLoading() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <div class="loading">
+                    <h3>🔄 Анализируем новость...</h3>
+                    <p>Это займет несколько секунд</p>
+                </div>
+            `;
+            resultDiv.className = 'result warning show';
+        }
+
+        function showError(message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <h3>❌ Ошибка</h3>
+                <p>${message}</p>
+                <p><small>Попробуйте еще раз или проверьте подключение к серверу</small></p>
+            `;
+            resultDiv.className = 'result error show';
+        }
+
+        function clearForm() {
+            document.getElementById('newsText').value = '';
+            document.getElementById('newsUrl').value = '';
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+            resultDiv.className = 'result';
+        }
+
+        function showExample() {
+            document.getElementById('newsText').value = 
+                'Breaking News: Scientists have discovered a new method for renewable energy that could revolutionize the industry. The technology promises to reduce carbon emissions by 50% in the next decade according to peer-reviewed research published in Nature Journal.';
+            document.getElementById('newsUrl').value = 'https://bbc.com/news/science';
+        }
+
+        // Обработчики событий для кнопок
+        document.addEventListener('DOMContentLoaded', function() {
+            // Добавляем обработчик Enter в текстовое поле
+            document.getElementById('newsText').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                    analyzeNews();
+                }
+            });
+            
+            // Показываем результат если он есть (при перезагрузке страницы)
+            const resultDiv = document.getElementById('result');
+            if (resultDiv.innerHTML.trim() !== '') {
+                resultDiv.classList.add('show');
+            }
+        });
+    </script>
+</body>
+</html>

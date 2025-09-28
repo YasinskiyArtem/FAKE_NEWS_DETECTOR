@@ -1,0 +1,9 @@
+tensorflow>=2.8.0
+scikit-learn
+pandas
+numpy
+nltk
+flask
+keras
+matplotlib
+seaborn
